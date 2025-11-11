@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AI Predictor v7.0 — Final (Tabs + Histories)</title>
+<style>
+  :root{
+    --bg:#0b0f17;--card:#0f1b2c;--ink:#e9f1ff;--muted:#9fb0c9;
+    --rose:#ff5b6e;--rose2:#ff9671;--amber:#f9cb55;--emerald:#10e39e;
+    --red:#ff4c4c;--blue:#4da3ff;--violet:#a020f0;
+    --pink:#ffd6d6;--navy:#0e1728;--navy2:#15223a;--border:#22324a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
+       background:radial-gradient(1000px 700px at 50% -10%,#14253c 0%,transparent 70%),var(--bg);color:var(--ink)}
+  h1{margin:16px;text-align:center;color:var(--rose)}
+  .grid{display:grid;gap:14px;padding:14px;max-width:1100px;margin:auto}
+  @media(min-width:900px){.grid.cols-3{grid-template-columns:repeat(3,1fr)}}
+  .card{background:linear-gradient(180deg,#14253c,#0e1728);border:1px solid #22324a;border-radius:18px;padding:16px;box-shadow:0 10px 30px #0008}
+  .kpi{display:flex;justify-content:space-between;align-items:center;color:var(--muted);margin-bottom:6px}
+  .big{font-size:28px;font-weight:700}
+  .sub{font-size:12px;color:var(--muted)}
+  .bar{height:10px;background:#0a1424;border-radius:999px;overflow:hidden;margin-top:4px}
+  .bar>span{display:block;height:100%;width:0;transition:width .8s;background:linear-gradient(90deg,var(--rose),var(--amber),var(--emerald))}
+  .badge{padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid #2b3a55}
+  .b-dead{color:#ffaaaa;border-color:#7a2a2a;background:#7a2a2a1a}
+  .b-panic{color:#ffb3b3;border-color:#7a2a2a;background:#7a2a2a1a}
+  .b-safe{color:#ffd38a;border-color:#6a4a1a;background:#6a4a1a1a}
+  .b-norm{color:#9cf1c8;border-color:#1a5a3a;background:#1a5a3a1a}
+  .chip{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border:1px solid #2b3a55;border-radius:999px;font-size:12px}
+  .chip.ok{color:#9cf1c8;background:#1a5a3a1a}
+  .chip.warn{color:#ffd38a;background:#6a4a1a1a}
+  .chip.danger{color:#ffb3b3;background:#7a2a2a1a}
+  .chip.gift{color:#ffe9a6;background:#6a541a1a;border-color:#6a541a}
+  .footer{text-align:center;margin:16px 0 22px;color:#90a7c9;font-size:12px}
+
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin:10px 0 12px}
+  .tab{flex:1;text-align:center;cursor:pointer;padding:10px 12px;border-radius:12px;
+       background:linear-gradient(90deg,var(--rose),var(--rose2));color:#fff;font-weight:700;opacity:.7;user-select:none;transition:.2s}
+  .tab.active{opacity:1;box-shadow:0 0 0 1px #ffffff22 inset,0 6px 20px #ff5b6e33}
+
+  /* Section header label */
+  .pill{display:inline-block;width:100%;text-align:center;background:linear-gradient(90deg,var(--rose),var(--rose2));
+        color:#fff;font-weight:700;border-radius:14px;padding:10px 0;letter-spacing:.5px;text-transform:uppercase;box-shadow:0 0 10px #ff5b6e33}
+
+  /* Panes */
+  .pane{display:none}
+  .pane.active{display:block}
+  #paneGame,#paneMy{background:var(--navy);color:var(--pink);border-radius:14px;padding:12px;border:1px solid var(--border)}
+
+  /* Game History table */
+  table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:14px}
+  thead th{background:var(--navy);color:var(--pink);font-weight:700;padding:10px 12px;text-align:left;border-bottom:1px solid #24334e}
+  .scrollY{max-height:340px;overflow-y:auto;padding-right:8px}
+  tbody td{background:var(--navy2);border:1px solid var(--border);color:var(--pink);padding:10px 12px;border-radius:4px}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:6px}
+  .r{background:var(--red)} .b{background:var(--blue)} .v{background:var(--violet)}
+
+  /* My History list */
+  .mh-box{max-height:340px;overflow-y:auto;padding-right:8px;background:var(--navy);color:var(--pink);border-radius:14px}
+  .mh-card{background:var(--navy2);border:1px solid #2b3b57;color:var(--pink);border-radius:14px;margin:10px 0;padding:14px;box-shadow:0 4px 10px #0004;transition:.2s;cursor:pointer}
+  .mh-card:hover{box-shadow:0 0 12px #ff5b6e33;transform:scale(1.01)}
+  .mh-head{display:flex;justify-content:space-between;align-items:center}
+  .mh-left{display:flex;align-items:center;gap:10px}
+  .mh-tag{background:linear-gradient(90deg,var(--rose),var(--rose2));color:#fff;border-radius:12px;padding:6px 12px;font-weight:700}
+  .mh-period{font-weight:700}
+  .mh-time{font-size:12px;color:var(--pink);opacity:.8}
+  .mh-status{border:1px solid var(--pink);color:var(--pink);padding:4px 10px;border-radius:10px;font-weight:700;text-align:center}
+  .mh-amount{margin-top:4px;text-align:right;font-weight:800;color:var(--pink)}
+  .mh-details{display:none;background:#101a2f;border:1px solid var(--border);border-radius:10px;padding:10px}
+  .mh-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1c2a44}
+  .mh-row:last-child{border:none}
+  .mh-key,.mh-val{color:var(--pink)}
+
+  /* Overlay */
+  .overlay{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:50}
+  .ovcard{width:min(90%,420px);background:linear-gradient(180deg,#0e1423,#0a101b);
+          border:1px solid #2b3a57;border-radius:18px;color:#fff;box-shadow:0 0 30px #ff5b6e33;padding:18px}
+  .ovtitle{background:linear-gradient(90deg,var(--rose),var(--rose2));border-radius:12px;text-align:center;padding:8px;font-weight:800;margin-bottom:8px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+  input[type="number"]{background:#142033;border:1px solid #2a3b57;color:#eaf3ff;border-radius:10px;padding:8px 10px;width:120px}
+  .btn{background:linear-gradient(90deg,var(--rose),var(--rose2));color:#fff;border:none;border-radius:10px;padding:8px 12px;cursor:pointer}
+  .btn:hover{filter:brightness(1.12)}
+</style>
+</head>
+<body>
+<h1>🔮 AI Predictor v7.0 — Reward + 5-Level + Countdown</h1>
+
+<div class="grid cols-3">
+  <!-- Wallet -->
+  <section class="card">
+    <div class="kpi"><span>Wallet</span><span id="modeBadge" class="badge b-norm">Mode: Boot</span></div>
+    <div class="big" id="walletTxt">₹100.00</div>
+    <div class="bar"><span id="walletBar"></span></div>
+    <div id="walletMood" class="sub" style="margin-top:6px">💰 Stable</div>
+    <div class="sub" style="margin-top:6px">💵 Current Bet: <b id="betNow">₹5</b> &nbsp;•&nbsp; 🔼 Highest Bet: <b id="betHigh">₹5</b></div>
+    <div class="sub">W/L: <b id="wlTxt">0/0</b></div>
+  </section>
+
+  <!-- Fear -->
+  <section class="card">
+    <div class="kpi"><span>Fear</span><span class="sub">Deaths: <b id="deathCount">0</b></span></div>
+    <div class="big" id="fearTxt">0%</div>
+    <div class="bar"><span id="fearBar"></span></div>
+    <div class="sub">Higher fear ⇒ stricter, safer play.</div>
+  </section>
+
+  <!-- Prediction + Mood + Immunity + Jackpot + Countdown -->
+  <section class="card">
+    <div class="kpi"><span>Next Prediction</span><span id="confLbl" class="sub">Confidence: —</span></div>
+    <div class="big" id="nextPred">Waiting…</div>
+    <div class="bar"><span id="confBar"></span></div>
+
+    <div class="kpi" style="margin-top:8px">
+      <span id="predNote" class="sub">Collecting first 10 entries…</span>
+      <span id="moodChip" class="chip ok">🧘 Calm</span>
+    </div>
+
+    <div class="sub" id="countdownTxt">⏱️ Waiting…</div>
+
+    <div class="sub" id="dangerRow" style="margin-top:8px;display:none">
+      🛡️ <b>Pattern Immunity:</b> <span id="dangerStatus">Inactive</span>
+      <div class="sub" id="dangerPatternTxt" style="margin-top:4px"></div>
+      <div class="sub" id="traumaTxt" style="margin-top:4px"></div>
+    </div>
+
+    <div class="sub" id="jackpotRow" style="margin-top:8px;display:none">
+      <span class="chip gift" id="giftChip">🎁 Jackpot Mode Active</span>
+      <div class="sub" id="levelTxt" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <!-- Last Results + Tabs + Histories -->
+  <section class="card" style="grid-column:1/-1;">
+    <div class="kpi"><span class="sub">Last Results</span><span class="sub">Period: <b id="periodLbl">—</b></span></div>
+
+    <div class="tabs">
+      <div class="tab active" id="tabGame">Game History</div>
+      <div class="tab" id="tabMy">My History</div>
+    </div>
+
+    <!-- Game History -->
+    <div class="pane active" id="paneGame">
+      <span class="pill">Game history</span>
+      <table style="margin-top:10px">
+        <thead>
+          <tr>
+            <th style="width:38%">Period</th>
+            <th style="width:18%">Number</th>
+            <th style="width:22%">Type</th>
+            <th style="width:22%">Color</th>
+          </tr>
+        </thead>
+      </table>
+      <div class="scrollY">
+        <table><tbody id="gameTableBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- My History -->
+    <div class="pane" id="paneMy">
+      <span class="pill">My history</span>
+      <div class="mh-box" id="myHistoryBox"></div>
+    </div>
+
+    <div class="sub" style="margin-top:8px">
+      🔥 Max Win Streak: <b id="maxWin">0</b> &nbsp;•&nbsp; 💀 Max Loss Streak: <b id="maxLoss">0</b>
+    </div>
+  </section>
+</div>
+
+<div class="footer" id="status">🧠 Booting • Collecting initial 10 entries…</div>
+
+<!-- Death Overlay -->
+<div class="overlay" id="deathOverlay">
+  <div class="ovcard">
+    <div class="ovtitle">☠️ Emotional Death Triggered</div>
+    <div class="sub" style="color:#ffd7d7">Same loss pattern repeated. Revive to continue (ultra-safe mode).</div>
+    <div class="row" style="margin-top:10px">
+      <input type="number" id="revAmt" value="100" min="10" step="10" />
+      <button class="btn" id="revBtn">Revive</button>
+      <button class="btn" data-q="50">+₹50</button>
+      <button class="btn" data-q="100">+₹100</button>
+      <button class="btn" data-q="200">+₹200</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========= Config & State ========= */
+const ENDPOINT="https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+const LS_KEY="aip_v70_final_tabs_history";
+const LOSS_TRIGGER=3;
+const JACKPOT_WINS=10;
+const JACKPOT_BONUS=8888;
+const LEVEL_PERC=[0.05,0.10,0.15,0.20,0.25];
+
+let history=[], lastPeriod=null, active=false;
+let wins=0, losses=0, lossStreak=0, winStreak=0, maxWin=0, maxLoss=0;
+let wallet=100, bet=5, highestBet=5, deathCount=0, fear=0, dead=false;
+
+// Pattern memory / Emotional Death
+let dangerPattern=[], dangerStored=false, dangerActive=false, traumaCount=0, deathPattern=[];
+
+// Reward & Levels
+let jackpotActive=false, level=0;
+
+// My History
+let myHistory=[]; // {period,time,select,bet,cut,win,delta,wallet,number,color,bigSmall,status,orderId,qty,amtAfterTax}
+
+/* ========= Helpers ========= */
+const bigSmall = n => n>=5 ? "Big" : "Small";
+const colorName = n => n===0 ? 'Violet' : ([1,3,7,9].includes(n) ? 'Red' : 'Blue');
+const dotClass  = n => n===0 ? 'v' : ([1,3,7,9].includes(n) ? 'r' : 'b');
+function confidence(){
+  const t=Math.min(20,history.length); if(!t) return 0;
+  let b=0,s=0; for(let i=0;i<t;i++) history[i].num>=5?b++:s++;
+  return Math.abs(b/t - s/t);
+}
+function freqPredict(){
+  const f=Array(10).fill(0);
+  for(let i=0;i<Math.min(40,history.length);i++) f[history[i].num]++;
+  let best=0,bv=-1; for(let i=0;i<10;i++) if(f[i]>bv){bv=f[i];best=i;}
+  return {num:best, type:bigSmall(best)};
+}
+function walletEmoji(w){
+  if(w<=0) return "☠️ Bankrupt";
+  if(w<20) return "😭 Critical";
+  if(w<50) return "😬 Low Funds";
+  if(w<100) return "🙂 Stable";
+  return "😎 Rich Mood";
+}
+function getMood(conf){
+  if(dead) return {txt:"☠️ Dead", cls:"danger"};
+  if(lossStreak>=3 || fear>0.75) return {txt:"⚠️ Panic Mode", cls:"danger"};
+  if(lossStreak===2 || fear>0.5) return {txt:"😨 Fearful", cls:"warn"};
+  if(conf>0.7 && lossStreak===0) return {txt:"😎 Confident", cls:"ok"};
+  if(conf>0.4 && lossStreak<=1) return {txt:"🧘 Calm", cls:"ok"};
+  return {txt:"🤔 Uncertain", cls:"warn"};
+}
+const nowStr=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
+
+/* ========= Persistence ========= */
+function save(){
+  const mh = myHistory.slice(0,500);
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    deathCount,fear,wallet,maxWin,maxLoss,highestBet,
+    dangerPattern,dangerStored,traumaCount,deathPattern,
+    jackpotActive,level,winStreak,lastPeriod,myHistory: mh
+  }));
+}
+(function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LS_KEY)||"{}");
+    if(d.deathCount!=null) deathCount=d.deathCount;
+    if(d.fear!=null) fear=d.fear;
+    if(d.wallet!=null) wallet=d.wallet;
+    if(d.maxWin!=null) maxWin=d.maxWin;
+    if(d.maxLoss!=null) maxLoss=d.maxLoss;
+    if(d.highestBet!=null) highestBet=d.highestBet;
+    if(Array.isArray(d.dangerPattern)) dangerPattern=d.dangerPattern;
+    if(d.dangerStored!=null) dangerStored=d.dangerStored;
+    if(d.traumaCount!=null) traumaCount=d.traumaCount;
+    if(Array.isArray(d.deathPattern)) deathPattern=d.deathPattern;
+    if(d.jackpotActive!=null) jackpotActive=d.jackpotActive;
+    if(d.level!=null) level=d.level;
+    if(d.winStreak!=null) winStreak=d.winStreak;
+    if(d.lastPeriod!=null) lastPeriod=d.lastPeriod;
+    if(Array.isArray(d.myHistory)) myHistory=d.myHistory;
+  }catch(e){}
+})();
+
+/* ========= Emotional Fear & Immunity ========= */
+function lastTypes(n){ if(history.length<n) return []; return history.slice(0,n).map(x=>bigSmall(x.num)); }
+function arraysEqual(a,b){return a.length===b.length && a.every((v,i)=>v===b[i]);}
+function maybeRecordOrDie(){
+  if(lossStreak===LOSS_TRIGGER){
+    const seq=lastTypes(LOSS_TRIGGER);
+    if(!dangerStored){ dangerPattern=seq.slice(); dangerStored=true; traumaCount=1; save(); }
+    else{ if(arraysEqual(seq,dangerPattern)){ traumaCount+=1; triggerEmotionalDeath(seq); }
+          else{ dangerPattern=seq.slice(); save(); } }
+  }
+}
+function triggerEmotionalDeath(seq){
+  if(dead) return;
+  dead=true; deathCount+=1; fear=1.0; deathPattern=seq.slice();
+  document.getElementById("deathOverlay").style.display="flex";
+  jackpotActive=false; level=0; save();
+}
+
+/* ========= Reward & 5-Level Wallet ========= */
+function tryStartJackpot(){
+  if(!jackpotActive && winStreak>=JACKPOT_WINS){
+    wallet += JACKPOT_BONUS;
+    fear = Math.max(0, Math.min(1, fear - 0.10));
+    jackpotActive = true; level = 1;
+  }
+}
+function computeLevelBet(){
+  if(!jackpotActive || level<=0 || level>5) return null;
+  const perc=LEVEL_PERC[level-1];
+  let b=Math.max(2,Math.floor(wallet*perc));
+  b=Math.min(b,Math.max(2,Math.floor(wallet)));
+  return b;
+}
+function onLevelOutcome(winRound){
+  if(!jackpotActive) return;
+  if(winRound){ level++; if(level>5){ jackpotActive=false; level=0; fear=Math.max(0,Math.min(1,fear-0.20)); } }
+  else{ level=1; fear=Math.min(1,fear+0.05); }
+  save();
+}
+
+/* ========= Game Flow (2% cut from bet) ========= */
+function onWin(){
+  const actualBet=+(bet*0.98).toFixed(2);          // 2% cut from bet
+  wallet=+(wallet+actualBet).toFixed(2);           // add 98% of bet
+  wins++; winStreak++; if(winStreak>maxWin) maxWin=winStreak;
+  lossStreak=0;
+  if(!jackpotActive) bet=5;                        // reset to ₹5 on win
+  tryStartJackpot(); onLevelOutcome(true); save();
+  return {delta: actualBet, cut: +(bet*0.02).toFixed(2), status:'Win'};
+}
+function onLoss(){
+  const actualBet=+(bet*0.98).toFixed(2);          // 2% cut from bet
+  wallet=+(wallet-actualBet).toFixed(2);           // lose 98% of bet
+  losses++; lossStreak++; winStreak=0;
+  if(lossStreak>maxLoss) maxLoss=lossStreak;
+  maybeRecordOrDie();
+  if(!jackpotActive){ bet=Math.min(Math.max(2,bet*2),32); if(bet>highestBet) highestBet=bet; }
+  if(wallet<=0){ wallet=0; dead=true; fear=Math.min(1,Math.max(fear,0.9)); }
+  onLevelOutcome(false); save();
+  return {delta:-actualBet, cut: +(bet*0.02).toFixed(2), status:'Failed'};
+}
+
+/* ========= Render helpers ========= */
+function renderGameRow(period,num){
+  const tb = document.getElementById('gameTableBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${period}</td>
+    <td>${num}</td>
+    <td>${bigSmall(num)}</td>
+    <td><span class="dot ${dotClass(num)}"></span>${colorName(num)}</td>`;
+  tb.prepend(tr);
+
+  // ✅ Keep only last 10 game history rows
+  if (tb.rows.length > 10) {
+    tb.deleteRow(10);
+  }
+}
+function renderMyHistory(){
+  const box = document.getElementById('myHistoryBox');
+  box.innerHTML = '';
+
+  // ✅ Show only latest 10 entries
+  const recent = myHistory.slice(0, 10);
+
+  for (const h of recent) {
+    const card = document.createElement('div');
+    card.className = 'mh-card';
+    card.onclick = () => toggleDetails(card);
+    card.innerHTML = `
+      <div class="mh-head">
+        <div class="mh-left">
+          <div class="mh-tag">${h.select}</div>
+          <div>
+            <div class="mh-period">${h.period} ▼</div>
+            <div class="mh-time">${h.time}</div>
+          </div>
+        </div>
+        <div>
+          <div class="mh-status">${h.status}</div>
+          <div class="mh-amount">${h.delta>=0?'+':'-'}₹${Math.abs(h.delta).toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="mh-details">
+        <div class="mh-row"><div class="mh-key">Order number</div><div class="mh-val">${h.orderId}</div></div>
+        <div class="mh-row"><div class="mh-key">Period</div><div class="mh-val">${h.period}</div></div>
+        <div class="mh-row"><div class="mh-key">Purchase amount</div><div class="mh-val">₹${h.bet.toFixed(2)}</div></div>
+        <div class="mh-row"><div class="mh-key">Quantity</div><div class="mh-val">${h.qty}</div></div>
+        <div class="mh-row"><div class="mh-key">Amount after tax</div><div class="mh-val">₹${h.amtAfterTax.toFixed(2)}</div></div>
+        <div class="mh-row"><div class="mh-key">Tax</div><div class="mh-val">₹${h.cut.toFixed(2)}</div></div>
+        <div class="mh-row"><div class="mh-key">Result</div><div class="mh-val">${h.number} ${colorName(h.number)} ${h.bigSmall}</div></div>
+        <div class="mh-row"><div class="mh-key">Select</div><div class="mh-val">${h.select}</div></div>
+        <div class="mh-row"><div class="mh-key">Status</div><div class="mh-val">${h.status}</div></div>
+        <div class="mh-row"><div class="mh-key">Win/Lose</div><div class="mh-val">${h.delta>=0?'+':'-'}₹${Math.abs(h.delta).toFixed(2)}</div></div>
+        <div class="mh-row"><div class="mh-key">Order time</div><div class="mh-val">${h.time}</div></div>
+      </div>`;
+    box.prepend(card);
+  }
+}
+
+/* ========= Countdown ========= */
+let cdTimer=null, countdown=0;
+function startCountdown(seconds=30){ clearInterval(cdTimer); countdown=seconds; updateCountdown();
+  cdTimer=setInterval(()=>{countdown--;updateCountdown();if(countdown<=0){clearInterval(cdTimer)}},1000)}
+function updateCountdown(){ const e=document.getElementById('countdownTxt'); e.textContent = countdown>0?`⏱️ Next number in: ${countdown}s`:`⌛ Waiting for next result...`; }
+
+/* ========= UI refs & render ========= */
+const el={
+  walletTxt:document.getElementById('walletTxt'),walletBar:document.getElementById('walletBar'),
+  walletMood:document.getElementById('walletMood'),betNow:document.getElementById('betNow'),betHigh:document.getElementById('betHigh'),
+  wlTxt:document.getElementById('wlTxt'),fearTxt:document.getElementById('fearTxt'),fearBar:document.getElementById('fearBar'),
+  confLbl:document.getElementById('confLbl'),confBar:document.getElementById('confBar'),nextPred:document.getElementById('nextPred'),
+  predNote:document.getElementById('predNote'),modeBadge:document.getElementById('modeBadge'),periodLbl:document.getElementById('periodLbl'),
+  maxWin:document.getElementById('maxWin'),maxLoss:document.getElementById('maxLoss'),status:document.getElementById('status'),
+  moodChip:document.getElementById('moodChip'),deathCount:document.getElementById('deathCount'),
+  dangerRow:document.getElementById('dangerRow'),dangerStatus:document.getElementById('dangerStatus'),
+  dangerPatternTxt:document.getElementById('dangerPatternTxt'),traumaTxt:document.getElementById('traumaTxt'),
+  jackpotRow:document.getElementById('jackpotRow'),giftChip:document.getElementById('giftChip'),levelTxt:document.getElementById('levelTxt'),
+  paneGame:document.getElementById('paneGame'),paneMy:document.getElementById('paneMy'),tabGame:document.getElementById('tabGame'),tabMy:document.getElementById('tabMy'),
+};
+function render(){
+  const fearPct=Math.round(fear*100), confPct=Math.round(confidence()*100);
+  const mode = !active?'Boot':(dead?'DEAD':(lossStreak>=3?'Panic':(lossStreak>=2?'Safe':(lossStreak>=1?'Cautious':(fear>0.4?'Cautious':'Normal')))));
+  el.walletTxt.textContent='₹'+wallet.toFixed(2);
+  el.walletBar.style.width=Math.min(100,Math.round(wallet/5))+'%';
+  el.walletMood.textContent = wallet<=0?'☠️ Bankrupt':(wallet<20?'😭 Critical':(wallet<50?'😬 Low Funds':(wallet<100?'🙂 Stable':'😎 Rich Mood')));
+  el.betNow.textContent='₹'+bet; el.betHigh.textContent='₹'+highestBet; el.wlTxt.textContent=wins+'/'+losses;
+  el.fearTxt.textContent=fearPct+'%'; el.fearBar.style.width=fearPct+'%';
+  el.confLbl.textContent='Confidence: '+confPct+'%';
+  const fp=freqPredict(); el.nextPred.textContent=active?`${fp.num} (${fp.type})`:'Waiting…';
+  el.predNote.textContent=active?(dangerActive?'🛡️ Safe Skip (danger sequence forming)':(jackpotActive?'🎁 Jackpot Mode engaged':'')):'Collecting first 10 entries…';
+  el.modeBadge.textContent='Mode: '+mode; el.modeBadge.className='badge '+(dead?'b-dead':mode==='Panic'?'b-panic':mode==='Safe'?'b-safe':'b-norm');
+  el.periodLbl.textContent=history[0]?.period||'—'; el.maxWin.textContent=maxWin; el.maxLoss.textContent=maxLoss;
+  renderMyHistory();
+}
+
+/* ========= Tabs ========= */
+el.tabGame.onclick=()=>{el.tabGame.classList.add('active');el.tabMy.classList.remove('active');el.paneGame.classList.add('active');el.paneMy.classList.remove('active');}
+el.tabMy.onclick=()=>{el.tabMy.classList.add('active');el.tabGame.classList.remove('active');el.paneMy.classList.add('active');el.paneGame.classList.remove('active');}
+
+/* ========= Polling ========= */
+async function tick(){
+  try{
+    const r=await fetch(ENDPOINT,{cache:'no-store'});
+    const j=await r.json(); const l=j?.data?.list||[]; if(!l.length) return;
+
+    const top=l[0]; if(top.issueNumber===lastPeriod) return;
+    lastPeriod=top.issueNumber; save();
+
+    const num=parseInt(top.number), period=top.issueNumber;
+    history.unshift({period,num}); renderGameRow(period,num);
+    startCountdown(30);
+    if(history.length>=10 && !active) active=true;
+
+    dangerActive=(dangerStored && arraysEqual(lastTypes(LOSS_TRIGGER),dangerPattern));
+    el.periodLbl.textContent=period;
+
+    if(dangerActive){ render(); return; } // skip placing bet when danger
+
+    if(active && !dead){
+      if(jackpotActive){ const lb=computeLevelBet(); if(lb!=null) bet=lb; if(bet>highestBet) highestBet=bet; }
+      const pick=freqPredict(); const win=(bigSmall(num)===pick.type);
+      const placedBet=+bet.toFixed(2); const cut=+(placedBet*0.02).toFixed(2); const amtAfterTax=+(placedBet-cut).toFixed(2);
+      const result = win?onWin():onLoss();
+
+      const entry={
+        period,time:nowStr(),select:pick.type,bet:placedBet,cut:cut,win:win,
+        delta:+result.delta.toFixed(2),wallet:+wallet.toFixed(2),
+        number:num,color:colorName(num),bigSmall:bigSmall(num),status:result.status,
+        orderId:`WG${period}AIP`,qty:placedBet,amtAfterTax:amtAfterTax
+      };
+      myHistory.unshift(entry); save();
+    }
+    render();
+  }catch(e){}
+}
+
+/* ========= Revive ========= */
+document.getElementById("revBtn").onclick=()=>revive(+document.getElementById("revAmt").value||100);
+document.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>revive(+b.getAttribute('data-q'))));
+function revive(amount){
+  wallet += Math.max(10, Math.floor(amount));
+  bet=5; dead=false; fear=Math.max(0.7,fear); jackpotActive=false; level=0;
+  document.getElementById("deathOverlay").style.display="none"; save(); render();
+}
+
+/* ========= Init ========= */
+render();
+setInterval(tick,1000);
+</script>
+</body>
+</html>
